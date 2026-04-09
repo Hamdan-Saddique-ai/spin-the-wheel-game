@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Spin the Wheel - Custom Editable Prize Wheel</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a472a 0%, #0e2a1a 100%);
+            font-family: 'Segoe UI', 'Poppins', 'Roboto', system-ui, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* main card container */
+        .wheel-container {
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(2px);
+            border-radius: 64px;
+            padding: 24px 28px 32px 28px;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.1);
+        }
+
+        .dashboard {
+            background: #fef9e6;
+            border-radius: 48px;
+            padding: 20px 28px 28px 28px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+        }
+
+        /* canvas + pointer area */
+        .wheel-area {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            background: #faf3e0;
+            border-radius: 50%;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.4), inset 0 0 0 4px rgba(255,215,130,0.8);
+            transition: box-shadow 0.2s;
+            max-width: 100%;
+            height: auto;
+            cursor: pointer;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 28px solid transparent;
+            border-right: 28px solid transparent;
+            border-top: 58px solid #ffd966;
+            filter: drop-shadow(0 5px 8px rgba(0,0,0,0.4));
+            z-index: 10;
+        }
+        .pointer::after {
+            content: "✨";
+            position: absolute;
+            font-size: 24px;
+            top: -62px;
+            left: -18px;
+            transform: rotate(25deg);
+        }
+
+        /* edit panel */
+        .edit-panel {
+            background: #fff6e8;
+            border-radius: 32px;
+            padding: 16px 20px;
+            margin-top: 12px;
+            box-shadow: inset 0 1px 4px #0001, 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .segment-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+            padding-right: 6px;
+        }
+
+        .segment-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #ffffffcc;
+            backdrop-filter: blur(2px);
+            margin-bottom: 8px;
+            padding: 6px 12px;
+            border-radius: 60px;
+            border: 1px solid #ffcf8a;
+        }
+
+        .segment-index {
+            font-weight: bold;
+            background: #e9b35f;
+            color: white;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 30px;
+            font-size: 0.9rem;
+        }
+
+        .segment-input {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 40px;
+            border: 1px solid #e0c8a0;
+            background: white;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: 0.1s;
+        }
+
+        .segment-input:focus {
+            outline: none;
+            border-color: #f5a623;
+            box-shadow: 0 0 0 2px #ffdd99;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin: 20px 0 10px;
+        }
+
+        button {
+            background: #ffb347;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 1rem;
+            color: #2c2b26;
+            cursor: pointer;
+            transition: 0.15s linear;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+
+        button.primary {
+            background: #e67e22;
+            color: white;
+            box-shadow: 0 4px 12px #b45f1b;
+        }
+
+        button.danger {
+            background: #bc6f3a;
+            color: #fff0dd;
+        }
+
+        .result-area {
+            background: #2e241f;
+            border-radius: 60px;
+            padding: 12px 16px;
+            margin-top: 18px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.3rem;
+            color: #ffecb3;
+            letter-spacing: 1px;
+            box-shadow: inset 0 1px 3px #00000055, 0 4px 8px #00000033;
+        }
+
+        .wheel-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            background: #e6c39480;
+            display: inline-block;
+            width: auto;
+            margin-bottom: 12px;
+            padding: 6px 18px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+        }
+
+        .add-sec {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .add-sec input {
+            flex: 1;
+            padding: 8px 14px;
+            border-radius: 40px;
+            border: 1px solid #e0c8a0;
+        }
+
+        @media (max-width: 620px) {
+            .dashboard {
+                padding: 16px;
+            }
+            .segment-input {
+                font-size: 0.8rem;
+            }
+            button {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            .result-area {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="wheel-container">
+    <div class="dashboard">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <div class="wheel-title">🎡 EDITABLE SPINNER WHEEL 🎲</div>
+            <div style="font-size: 0.75rem; background: #f0dbb4; padding: 4px 12px; border-radius: 20px;">click spin or tap wheel</div>
+        </div>
+        <div class="wheel-area">
+            <canvas id="wheelCanvas" width="550" height="550" style="width:100%; max-width:550px; height:auto; aspect-ratio:1/1"></canvas>
+            <div class="pointer"></div>
+        </div>
+
+        <div class="edit-panel">
+            <div style="font-weight: bold; margin-bottom: 8px;">✏️ Edit Segments (Text & Colors)</div>
+            <div class="segment-list" id="segmentListContainer">
+                <!-- dynamic list of segments -->
+            </div>
+            <div class="add-sec">
+                <input type="text" id="newSegmentText" placeholder="New segment name, e.g. 'Mystery Box'" maxlength="32">
+                <button id="addSegmentBtn" style="background:#5e9b6e;">➕ Add</button>
+            </div>
+            <div class="action-buttons">
+                <button id="spinBtn" class="primary">🎲 SPIN THE WHEEL 🎲</button>
+                <button id="resetDefaultBtn">🔄 Reset Defaults</button>
+                <button id="applyWheelBtn" class="danger">✨ Apply & Redraw</button>
+            </div>
+            <div class="result-area" id="resultMessage">
+                🎯 Ready! Edit text, then spin.
+            </div>
+            <div style="font-size: 0.7rem; text-align: center; margin-top: 12px; color:#b97f42;">
+                💡 Tip: Edit any field, click "Apply & Redraw" to update colors/text. Then spin!
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        // -------- DEFAULT WHEEL DATA (colorful & editable)
+        const DEFAULT_SEGMENTS = [
+            { text: "🎁 Gift Card", color: "#FF6B6B" },
+            { text: "🍕 Pizza", color: "#4ECDC4" },
+            { text: "🎬 Movie", color: "#FFE66D" },
+            { text: "📚 Book", color: "#95E1D3" },
+            { text: "☕ Coffee", color: "#F38181" },
+            { text: "🧸 Plushie", color: "#AA96DA" },
+            { text: "🎧 Headphones", color: "#FCBAD3" },
+            { text: "🌟 Mystery", color: "#A8E6CF" }
+        ];
+
+        // helper: generate distinct vibrant colors for new segments if needed
+        const presetPalette = ["#F4A261", "#2A9D8F", "#E9C46A", "#E76F51", "#6D6875", "#B5838D", "#6C9EBF", "#E5989B", "#6B705C", "#CB997E"];
+        
+        let segments = [];     // array of { text, color }
+        let currentRotation = 0;   // in radians
+        let isSpinning = false;
+        let animationFrame = null;
+        let spinStartTime = 0;
+        let spinDuration = 1800;   // ms
+        let spinStartRot = 0;
+        let spinTargetDelta = 0;    // total radians to add
+        let finalSegmentIndex = -1;
+        
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const segmentListContainer = document.getElementById('segmentListContainer');
+        const resultDiv = document.getElementById('resultMessage');
+        
+        // --- helper: resize canvas properly
+        function resizeCanvas() {
+            const size = Math.min(window.innerWidth - 80, 550);
+            canvas.style.width = `${size}px`;
+            canvas.style.height = `${size}px`;
+            canvas.width = size;
+            canvas.height = size;
+            drawWheel();
+        }
+        window.addEventListener('resize', () => { resizeCanvas(); drawWheel(); });
+        
+        // draw wheel based on segments & currentRotation
+        function drawWheel() {
+            if (!ctx) return;
+            const w = canvas.width;
+            const h = canvas.height;
+            const centerX = w/2;
+            const centerY = h/2;
+            const radius = Math.min(w, h) * 0.45;
+            ctx.clearRect(0, 0, w, h);
+            if (!segments.length) {
+                ctx.fillStyle = "#dddddd";
+                ctx.font = `bold ${Math.floor(radius/8)}px "Segoe UI"`;
+                ctx.fillText("Add segments", centerX-70, centerY);
+                return;
+            }
+            const angleStep = (Math.PI * 2) / segments.length;
+            for (let i = 0; i < segments.length; i++) {
+                const start = currentRotation + i * angleStep;
+                const end = start + angleStep;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, start, end);
+                ctx.lineTo(centerX, centerY);
+                ctx.fillStyle = segments[i].color;
+                ctx.fill();
+                ctx.save();
+                ctx.shadowBlur = 0;
+                ctx.strokeStyle = "#FFF9E8";
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, start, end);
+                ctx.lineTo(centerX, centerY);
+                ctx.stroke();
+                ctx.restore();
+                // draw text
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(start + angleStep/2);
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                const textRadius = radius * 0.7;
+                let fontSize = Math.max(12, Math.min(28, Math.floor(radius / 7)));
+                if (segments[i].text.length > 15) fontSize = fontSize * 0.8;
+                ctx.font = `500 ${fontSize}px "Segoe UI", "Poppins"`;
+                ctx.fillStyle = "#1F2A2E";
+                ctx.shadowColor = "rgba(255,255,200,0.6)";
+                ctx.shadowBlur = 2;
+                let displayText = segments[i].text;
+                if (displayText.length > 18) displayText = displayText.slice(0,16)+"..";
+                ctx.fillText(displayText, textRadius, 6);
+                ctx.restore();
+            }
+            // draw inner circle + decoration
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.12, 0, 2*Math.PI);
+            ctx.fillStyle = "#FFD966";
+            ctx.shadowBlur = 4;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.07, 0, 2*Math.PI);
+            ctx.fillStyle = "#D49B3A";
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        
+        // update UI list from segments array
+        function rebuildSegmentUI() {
+            segmentListContainer.innerHTML = '';
+            for (let i = 0; i < segments.length; i++) {
+                const seg = segments[i];
+                const div = document.createElement('div');
+                div.className = 'segment-item';
+                const idxSpan = document.createElement('span');
+                idxSpan.className = 'segment-index';
+                idxSpan.innerText = i+1;
+                const inputText = document.createElement('input');
+                inputText.type = 'text';
+                inputText.className = 'segment-input';
+                inputText.value = seg.text;
+                inputText.maxLength = 32;
+                inputText.addEventListener('change', (function(idx) {
+                    return function(e) {
+                        segments[idx].text = e.target.value.trim() || "?";
+                        drawWheel();
+                        rebuildSegmentUI();   // refresh to show updated text in list
+                    };
+                })(i));
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.value = seg.color;
+                colorInput.style.width = '48px';
+                colorInput.style.height = '38px';
+                colorInput.style.borderRadius = '30px';
+                colorInput.style.border = 'none';
+                colorInput.style.background = '#fff0dd';
+                colorInput.style.cursor = 'pointer';
+                colorInput.addEventListener('change', (function(idx) {
+                    return function(e) {
+                        segments[idx].color = e.target.value;
+                        drawWheel();
+                        rebuildSegmentUI(); // keep in sync
+                    };
+                })(i));
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerText = '✖';
+                deleteBtn.style.background = '#c97e5a';
+                deleteBtn.style.padding = '4px 12px';
+                deleteBtn.style.fontSize = '0.8rem';
+                deleteBtn.addEventListener('click', (function(idx) {
+                    return function() {
+                        if(segments.length <= 1) {
+                            resultDiv.innerText = "⚠️ Need at least 1 segment!";
+                            return;
+                        }
+                        segments.splice(idx, 1);
+                        rebuildSegmentUI();
+                        drawWheel();
+                        resultDiv.innerText = `🗑️ Removed segment. Wheel updated.`;
+                    };
+                })(i));
+                div.appendChild(idxSpan);
+                div.appendChild(inputText);
+                div.appendChild(colorInput);
+                div.appendChild(deleteBtn);
+                segmentListContainer.appendChild(div);
+            }
+            if(segments.length === 0){
+                const emptyMsg = document.createElement('div');
+                emptyMsg.innerText = "➕ Add some segments using the field below";
+                emptyMsg.style.padding = "12px";
+                emptyMsg.style.textAlign = "center";
+                segmentListContainer.appendChild(emptyMsg);
+            }
+        }
+        
+        // apply current segments from UI (called on Apply button)
+        function syncSegmentsFromUI() {
+            // already live because each input 'change' updates segments array directly
+            // but ensure redraw and list consistency
+            drawWheel();
+            resultDiv.innerText = "✅ Wheel updated with your custom text & colors!";
+            setTimeout(() => {
+                if(!isSpinning) resultDiv.innerText = "🎯 Ready to spin!";
+            }, 1800);
+        }
+        
+        // reset to default
+        function resetToDefault() {
+            segments = JSON.parse(JSON.stringify(DEFAULT_SEGMENTS));
+            rebuildSegmentUI();
+            currentRotation = 0;
+            drawWheel();
+            if(!isSpinning) resultDiv.innerText = "♻️ Reset to default wheel. Edit & spin!";
+            else resultDiv.innerText = "Reset done, but spinning in progress...";
+        }
+        
+        // add new segment
+        function addNewSegment() {
+            const inputField = document.getElementById('newSegmentText');
+            let newText = inputField.value.trim();
+            if(!newText) newText = `Segment ${segments.length+1}`;
+            const randColor = presetPalette[segments.length % presetPalette.length];
+            segments.push({ text: newText, color: randColor });
+            inputField.value = '';
+            rebuildSegmentUI();
+            drawWheel();
+            resultDiv.innerText = `✨ Added "${newText}"! Don't forget to spin.`;
+        }
+        
+        // --- SPIN LOGIC: random stop on a weighted (equal) segment
+        function startSpin() {
+            if(isSpinning) {
+                resultDiv.innerText = "⏳ Already spinning! Wait...";
+                return;
+            }
+            if(segments.length === 0) {
+                resultDiv.innerText = "❌ Add at least one segment first!";
+                return;
+            }
+            // generate random extra spins: between 5 and 12 full rotations + random extra angle
+            const fullTurns = 6 + Math.random() * 8; // 6 to 14 full spins
+            const randomRadOffset = Math.random() * Math.PI * 2;
+            const totalDelta = (fullTurns * 2 * Math.PI) + randomRadOffset;
+            spinTargetDelta = totalDelta;
+            spinStartRot = currentRotation;
+            spinStartTime = performance.now();
+            isSpinning = true;
+            finalSegmentIndex = -1;
+            
+            function easing(t) {
+                // cubic out
+                return 1 - Math.pow(1 - t, 3);
+            }
+            
+            function animateSpin(now) {
+                const elapsed = now - spinStartTime;
+                let t = Math.min(1, elapsed / spinDuration);
+                const ease = easing(t);
+                const newRot = spinStartRot + spinTargetDelta * ease;
+                currentRotation = newRot % (Math.PI * 2);
+                drawWheel();
+                if(t < 1) {
+                    animationFrame = requestAnimationFrame(animateSpin);
+                } else {
+                    // final snap: ensure final rotation
+                    currentRotation = (spinStartRot + spinTargetDelta) % (Math.PI * 2);
+                    drawWheel();
+                    isSpinning = false;
+                    animationFrame = null;
+                    // determine which segment is under pointer (top = -90° offset? pointer direction is straight up: angle -PI/2)
+                    // pointer direction is fixed upward: angle = -PI/2 ( -90° ) relative to canvas.
+                    // we find segment where the segment's middle range contains that direction.
+                    const pointerAngle = -Math.PI / 2;   // top direction (12 o'clock)
+                    let angleStep = (Math.PI * 2) / segments.length;
+                    let winnerIdx = -1;
+                    for (let i = 0; i < segments.length; i++) {
+                        let startSeg = currentRotation + i * angleStep;
+                        let endSeg = startSeg + angleStep;
+                        // normalize pointerAngle between 0-2pi
+                        let normPointer = pointerAngle;
+                        let normStart = startSeg % (2*Math.PI);
+                        let normEnd = endSeg % (2*Math.PI);
+                        if (normStart < 0) normStart += 2*Math.PI;
+                        if (normEnd < 0) normEnd += 2*Math.PI;
+                        if (normStart < normEnd) {
+                            if (normPointer >= normStart && normPointer < normEnd) {
+                                winnerIdx = i;
+                                break;
+                            }
+                        } else {
+                            // wrap-around segment
+                            if (normPointer >= normStart || normPointer < normEnd) {
+                                winnerIdx = i;
+                                break;
+                            }
+                        }
+                    }
+                    // fallback
+                    if(winnerIdx === -1) winnerIdx = 0;
+                    finalSegmentIndex = winnerIdx;
+                    const prizeText = segments[finalSegmentIndex].text;
+                    resultDiv.innerHTML = `🎉 🎯 WHEEL STOPPED ON: <strong style="font-size:1.4rem;">${prizeText}</strong> 🎉 🎯`;
+                    setTimeout(() => {
+                        if(!isSpinning) resultDiv.style.opacity = '1';
+                    }, 20);
+                }
+            }
+            resultDiv.innerHTML = "🌀 SPINNING... Good luck! 🌀";
+            animationFrame = requestAnimationFrame(animateSpin);
+        }
+        
+        // optional click on canvas to spin as well
+        function handleCanvasSpin(e) {
+            if(!isSpinning) startSpin();
+        }
+        
+        // initial load & event binding
+        function init() {
+            segments = JSON.parse(JSON.stringify(DEFAULT_SEGMENTS));
+            rebuildSegmentUI();
+            resizeCanvas();
+            drawWheel();
+            document.getElementById('spinBtn').addEventListener('click', startSpin);
+            document.getElementById('resetDefaultBtn').addEventListener('click', resetToDefault);
+            document.getElementById('applyWheelBtn').addEventListener('click', () => {
+                syncSegmentsFromUI();
+                drawWheel();
+            });
+            document.getElementById('addSegmentBtn').addEventListener('click', addNewSegment);
+            canvas.addEventListener('click', handleCanvasSpin);
+            // also allow pressing Enter on new segment field
+            const newSegInput = document.getElementById('newSegmentText');
+            newSegInput.addEventListener('keypress', (e) => {
+                if(e.key === 'Enter') addNewSegment();
+            });
+        }
+        
+        init();
+    })();
+</script>
+</body>
+</html>
