@@ -1,4 +1,4 @@
-## "spin the wheel"
+## "Spin the wheel"
 ## 📂 Project Structure
 
 - `spin the wheel.html` – Main game file  
