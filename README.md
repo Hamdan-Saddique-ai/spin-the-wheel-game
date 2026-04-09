@@ -11,7 +11,7 @@
 
 1. Download or clone the repository:
    ```bash
-   git clone your-repository-link
+   (https://github.com/Hamdan-Saddique-ai/spin-the-wheel-game.git)
 Open the project folder.
 
 Run the project by opening:
