@@ -1,5 +1,5 @@
 ## "Spin the wheel"
-## 📂 Project Structure
+##  Project Structure
 
 - `spin the wheel.html` – Main game file  
 - Built-in CSS for styling and layout  
